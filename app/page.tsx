@@ -1,329 +1,605 @@
-const stats = [
-  {
-    label: "Own Capacity",
-    value: "320",
-    suffix: "units",
-    note: "Available today",
-  },
-  {
-    label: "Network Capacity",
-    value: "1,850",
-    suffix: "units",
-    note: "Across 24 partners",
-  },
-  {
-    label: "Orders Saved",
-    value: "23",
-    suffix: "",
-    note: "This month",
-  },
-  {
-    label: "Revenue Unlocked",
-    value: "₹4.82L",
-    suffix: "",
-    note: "From overflow orders",
-    highlight: true,
-  },
-];
+"use client";
 
-const orders = [
-  {
-    id: "OM-2048",
-    product: "Custom Cotton T-Shirts",
-    requested: "500",
-    overflow: "300",
-    value: "₹73,540",
-    status: "Building Coalition",
-  },
-  {
-    id: "OM-2045",
-    product: "Printed Hoodies",
-    requested: "240",
-    overflow: "90",
-    value: "₹1,08,400",
-    status: "Fulfilled",
-  },
-  {
-    id: "OM-2041",
-    product: "Corporate Polo Shirts",
-    requested: "350",
-    overflow: "120",
-    value: "₹84,000",
-    status: "Coalition Active",
-  },
-];
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-export default function Home() {
+import HeroNetworkAnimation from "../components/HeroNetworkAnimation";
+type Order = {
+  id: number;
+  product: string;
+  city: string | null;
+  requested_quantity: number;
+  secured_capacity: number;
+  estimated_network_cost: number;
+  status: string;
+  payment_status: string;
+  created_at: string;
+};
+
+type Capability = {
+  available_capacity: number;
+  is_available: boolean;
+};
+
+export default function DashboardPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      const { data: orderData, error: orderError } =
+        await supabase
+          .from("orders")
+          .select(`
+            id,
+            product,
+            city,
+            requested_quantity,
+            secured_capacity,
+            estimated_network_cost,
+            status,
+            payment_status,
+            created_at
+          `)
+          .order("created_at", {
+            ascending: false,
+          });
+
+      const { data: capabilityData, error: capabilityError } =
+        await supabase
+          .from("merchant_capabilities")
+          .select(`
+            available_capacity,
+            is_available
+          `);
+
+      if (orderError) {
+        console.error(orderError);
+      }
+
+      if (capabilityError) {
+        console.error(capabilityError);
+      }
+
+      setOrders((orderData || []) as Order[]);
+      setCapabilities(
+        (capabilityData || []) as Capability[]
+      );
+
+      setLoading(false);
+    }
+
+    loadDashboard();
+  }, []);
+
+  const metrics = useMemo(() => {
+    const networkCapacity = capabilities
+      .filter((capability) => capability.is_available)
+      .reduce(
+        (total, capability) =>
+          total + Number(capability.available_capacity),
+        0
+      );
+
+    const paidRevenue = orders
+      .filter((order) => order.payment_status === "paid")
+      .reduce(
+        (total, order) =>
+          total + Number(order.estimated_network_cost),
+        0
+      );
+
+    const recoveredOrders = orders.filter(
+      (order) => order.status === "recovered"
+    ).length;
+
+    const paidOrders = orders.filter(
+      (order) => order.payment_status === "paid"
+    ).length;
+
+    return {
+      networkCapacity,
+      paidRevenue,
+      recoveredOrders,
+      paidOrders,
+    };
+  }, [orders, capabilities]);
+
+  const recentOrders = orders.slice(0, 5);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f6f7f8] p-10">
+        Loading OverMesh dashboard...
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f7f8] text-[#17191c]">
       <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <aside className="hidden w-64 flex-col border-r border-[#e4e6e8] bg-white lg:flex">
-          <div className="border-b border-[#eceeef] px-6 py-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#18201d] text-sm font-semibold text-white">
-                OM
-              </div>
 
-              <div>
-                <h1 className="text-[15px] font-semibold tracking-tight">
-                  OverMesh AI
-                </h1>
-                <p className="text-xs text-[#8b9198]">Capacity Network</p>
-              </div>
-            </div>
+        {/* Sidebar */}
+        <aside className="hidden w-64 border-r border-[#e2e5e7] bg-white p-6 md:block">
+          <div>
+            <h1 className="text-xl font-bold">
+              OverMesh AI
+            </h1>
+
+            <p className="mt-1 text-xs text-[#92979c]">
+              Self-Healing Commerce
+            </p>
           </div>
 
-          <nav className="flex-1 px-4 py-5">
-            <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a1a6ac]">
-              Workspace
+          <nav className="mt-10">
+
+  {/* Overview */}
+  <Link
+    href="/"
+    className="block rounded-lg bg-[#eef3f0] px-4 py-3 text-sm font-medium"
+  >
+    Overview
+  </Link>
+
+  {/* Requester */}
+  <div className="mt-7">
+    <p className="px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa19d]">
+      Requester Business
+    </p>
+
+    <div className="mt-2 space-y-1">
+      <Link
+        href="/orders/new"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        + Request Capacity
+      </Link>
+
+      <Link
+        href="/orders"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        Orders
+      </Link>
+
+      <Link
+        href="/coalitions"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        Coalitions
+      </Link>
+    </div>
+  </div>
+
+  {/* Capacity Partner */}
+  <div className="mt-7">
+    <p className="px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa19d]">
+      Capacity Partner
+    </p>
+
+    <div className="mt-2 space-y-1">
+      <Link
+        href="/merchant/dashboard"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        Merchant Console
+      </Link>
+
+      <Link
+        href="/merchant/register"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        Join Capacity Network
+      </Link>
+    </div>
+  </div>
+
+  {/* Network */}
+  <div className="mt-7">
+    <p className="px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa19d]">
+      Network Intelligence
+    </p>
+
+    <div className="mt-2 space-y-1">
+      <Link
+        href="/capacity-network"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        Capacity Network
+      </Link>
+
+      <Link
+        href="/analytics"
+        className="block rounded-lg px-4 py-2.5 text-sm text-[#697076] hover:bg-[#f5f6f6]"
+      >
+        Analytics
+      </Link>
+    </div>
+  </div>
+
+  {/* Role switch */}
+  <div className="mt-8 border-t border-[#ecefed] pt-5">
+    <Link
+      href="/start"
+      className="block rounded-lg px-4 py-2.5 text-sm font-medium text-[#34745a] hover:bg-[#f3f7f4]"
+    >
+      ⇄ Switch Role
+    </Link>
+  </div>
+</nav>
+
+          <div className="mt-10 rounded-xl bg-[#f5f8f6] p-4">
+            <p className="text-xs font-semibold">
+              Merchant Network
             </p>
 
-            <div className="space-y-1">
-              {[
-                "Overview",
-                "Orders",
-                "Capacity Network",
-                "Coalitions",
-                "Analytics",
-              ].map((item, index) => (
-                <button
-                  key={item}
-                  className={`flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm transition ${
-                    index === 0
-                      ? "bg-[#f0f3f1] font-medium text-[#18201d]"
-                      : "text-[#5f666d] hover:bg-[#f7f8f8] hover:text-[#202428]"
-                  }`}
-                >
-                  <span
-                    className={`mr-3 h-2 w-2 rounded-full ${
-                      index === 0 ? "bg-[#18794e]" : "bg-[#c7cbcf]"
-                    }`}
-                  />
-                  {item}
-                </button>
-              ))}
-            </div>
-          </nav>
+            <p className="mt-2 text-xs leading-5 text-[#858b91]">
+              Share spare capacity and receive matching fulfilment
+              opportunities.
+            </p>
 
-          <div className="border-t border-[#eceeef] p-4">
-            <button className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-[#5f666d] hover:bg-[#f7f8f8]">
-              Settings
-            </button>
+            <Link
+              href="/merchant/register"
+              className="mt-4 inline-block text-xs font-semibold text-[#34745a]"
+            >
+              Join OverMesh →
+            </Link>
           </div>
         </aside>
 
-        {/* Main content */}
-        <section className="flex-1">
-          {/* Header */}
-          <header className="flex h-[72px] items-center justify-between border-b border-[#e4e6e8] bg-white px-6 lg:px-10">
-            <div>
-              <p className="text-sm font-medium">UrbanPrint</p>
-              <p className="mt-0.5 text-xs text-[#8b9198]">Bhopal, India</p>
-            </div>
+        {/* Dashboard */}
+        <section className="flex-1 px-6 py-10 lg:px-10">
+          <div className="mx-auto max-w-7xl">
 
-            <div className="flex items-center gap-2 rounded-full border border-[#dce9e2] bg-[#f4fbf7] px-3 py-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#1f9d67]" />
-              <span className="text-xs font-medium text-[#276749]">
-                Network Active
-              </span>
-            </div>
-          </header>
+            {/* Header */}
+        {/* Advanced Hero */}
+<div className="relative overflow-hidden rounded-3xl bg-[#0d1713] px-7 py-9 text-white md:px-10 md:py-11">
+  
 
-          <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10 lg:py-10">
-            {/* Page intro */}
-            <div className="mb-8">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#858b91]">
-                Overview
-              </p>
+  {/* Background decoration */}
+  <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+  <div className="pointer-events-none absolute -bottom-24 right-0 h-80 w-80 rounded-full bg-teal-300/10 blur-3xl" />
 
-              <h2 className="text-2xl font-semibold tracking-tight lg:text-3xl">
-                Capacity Overview
-              </h2>
+  <div
+    className="pointer-events-none absolute inset-0 opacity-[0.07]"
+    style={{
+      backgroundImage:
+        "linear-gradient(rgba(255,255,255,0.25) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.25) 1px, transparent 1px)",
+      backgroundSize: "40px 40px",
+    }}
+  />
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#737a81]">
-                Monitor your production capacity and the additional capacity
-                available across the OverMesh merchant network.
-              </p>
-            </div>
+  <div className="relative z-10">
 
-            {/* Stats */}
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {stats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className={`rounded-xl border p-5 ${
-                    stat.highlight
-                      ? "border-[#cfe5d8] bg-[#f4faf6]"
-                      : "border-[#e3e5e7] bg-white"
-                  }`}
-                >
-                  <p className="text-sm text-[#737a81]">{stat.label}</p>
+    {/* Status */}
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-200">
+        OverMesh Intelligence
+      </span>
 
-                  <div className="mt-4 flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold tracking-tight">
-                      {stat.value}
-                    </span>
+      <span className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-medium text-emerald-200">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+        </span>
 
-                    {stat.suffix && (
-                      <span className="text-sm text-[#858b91]">
-                        {stat.suffix}
-                      </span>
-                    )}
-                  </div>
+        Network Online
+      </span>
+    </div>
 
-                  <p
-                    className={`mt-2 text-xs ${
-                      stat.highlight ? "text-[#287252]" : "text-[#9a9fa4]"
-                    }`}
-                  >
-                    {stat.note}
-                  </p>
-                </div>
-              ))}
-            </div>
+    {/* Main content */}
+<div className="relative z-10 mt-8 grid gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
 
-            {/* Active order */}
-            <div className="mt-6 rounded-xl border border-[#e3e5e7] bg-white p-6">
-              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+  {/* LEFT SIDE */}
+  <div>
+    <p className="text-xs font-medium uppercase tracking-[0.18em] text-white/40">
+      AI-Powered Shared Capacity Network
+    </p>
+
+    <h2 className="mt-3 text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
+      Don&apos;t reject the order.
+      <br />
+      <span className="text-emerald-200">
+        Borrow the capacity.
+      </span>
+    </h2>
+
+    <p className="mt-7 max-w-2xl text-sm leading-7 text-white/65">
+      OverMesh connects businesses with spare capacity, builds intelligent
+      fulfilment coalitions and automatically rebuilds them when a partner fails.
+    </p>
+
+    <div className="mt-8 flex flex-wrap gap-3">
+      <Link
+        href="/orders/new"
+        className="rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0d1713] transition hover:bg-emerald-50"
+      >
+        + Request Capacity
+      </Link>
+
+      <Link
+        href="/start"
+        className="rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-medium text-white transition hover:bg-white/10"
+      >
+        Explore Roles →
+      </Link>
+    </div>
+  </div>
+
+
+  {/* RIGHT SIDE — MEDIUM LIVE NETWORK */}
+  <div className="relative hidden h-[285px] overflow-hidden rounded-[24px] border border-white/10 bg-[#10231c]/80 lg:block">
+
+    <HeroNetworkAnimation />
+
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[#0b1813] via-[#0b1813]/70 to-transparent px-5 pb-5 pt-16">
+      <div className="flex items-end justify-between gap-4">
+
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/60">
+            Live Capacity Mesh
+          </p>
+
+          <p className="mt-1 text-sm text-white/80">
+            Merchant nodes coordinating in real time
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-full border border-emerald-300/10 bg-emerald-300/5 px-3 py-1.5 text-[10px] text-emerald-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          Active
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+    {/* Live data */}
+    <div className="mt-8 grid gap-3 sm:grid-cols-3">
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm transition hover:bg-white/[0.08]">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+          Live Orders
+        </p>
+
+        <p className="mt-2 text-xl font-semibold">
+          {orders.length}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm transition hover:bg-white/[0.08]">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+          Shared Capacity
+        </p>
+
+        <p className="mt-2 text-xl font-semibold">
+          {metrics.networkCapacity.toLocaleString("en-IN")}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm transition hover:bg-white/[0.08]">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+          Self-Healed
+        </p>
+
+        <p className="mt-2 text-xl font-semibold">
+          {metrics.recoveredOrders}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+  {/* Total Orders */}
+  <div className="flash-card group rounded-2xl border border-[#d7e4dc] bg-white p-6 shadow-[0_10px_30px_rgba(19,48,35,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(19,48,35,0.14)]">
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#728078]">
+        Total Orders
+      </p>
+
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#eef6f1] text-lg text-[#159a69]">
+        ↗
+      </div>
+    </div>
+
+    <p className="mt-4 text-3xl font-semibold text-[#14231c]">
+      {orders.length}
+    </p>
+
+    <p className="mt-2 text-xs text-[#7a8981]">
+      Live demand across the network
+    </p>
+  </div>
+
+
+  {/* Live Network Capacity */}
+  <div className="flash-card group rounded-2xl border border-[#b8ddc9] bg-[#eaf7f0] p-6 shadow-[0_10px_30px_rgba(19,48,35,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(19,48,35,0.14)]">
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#628071]">
+        Live Network Capacity
+      </p>
+
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/70 text-lg font-medium text-[#159a69]">
+        ◎
+      </div>
+    </div>
+
+    <p className="mt-4 text-3xl font-semibold text-[#14231c]">
+      {metrics.networkCapacity.toLocaleString("en-IN")}
+    </p>
+
+    <div className="mt-2 flex items-center gap-2">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-30"></span>
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+      </span>
+
+      <p className="text-xs text-[#678072]">
+        Capacity available right now
+      </p>
+    </div>
+  </div>
+
+
+  {/* Self-Healed Orders */}
+  <div className="flash-card group rounded-2xl border border-[#c8ddd3] bg-[#f0f6f3] p-6 shadow-[0_10px_30px_rgba(19,48,35,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(19,48,35,0.14)]">
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6f8278]">
+        Self-Healed Orders
+      </p>
+
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/70 text-lg text-[#4f8069]">
+        ↻
+      </div>
+    </div>
+
+    <p className="mt-4 text-3xl font-semibold text-[#14231c]">
+      {metrics.recoveredOrders}
+    </p>
+
+    <p className="mt-2 text-xs text-[#75877e]">
+      Automatically recovered after partner disruption
+    </p>
+  </div>
+
+
+  {/* Paid Network Value */}
+  <div className="flash-card group rounded-2xl border border-[#9fd0b5] bg-gradient-to-br from-[#dff3e8] to-[#f7fbf9] p-6 shadow-[0_10px_30px_rgba(19,48,35,0.09)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(19,48,35,0.15)]">
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#587565]">
+        Paid Network Value
+      </p>
+
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/75 text-lg font-semibold text-[#159a69]">
+        ₹
+      </div>
+    </div>
+
+    <p className="mt-4 text-3xl font-semibold text-[#14231c]">
+      ₹{metrics.paidRevenue.toLocaleString("en-IN")}
+    </p>
+
+    <div className="mt-2 flex items-center gap-2">
+      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+
+      <p className="text-xs text-[#5f7d6d]">
+        {metrics.paidOrders} verified payments
+      </p>
+    </div>
+  </div>
+
+</div>
+
+            {/* Recent orders */}
+            <div className="mt-8">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#90969c]">
-                      Active Overflow Order
-                    </p>
-
-                    <span className="rounded-full bg-[#fff7df] px-2.5 py-1 text-[11px] font-medium text-[#856404]">
-                      Building Coalition
-                    </span>
-                  </div>
-
-                  <h3 className="mt-3 text-lg font-semibold">
-                    Custom Cotton T-Shirts
+                  <h3 className="text-xl font-semibold">
+                    Recent Orders
                   </h3>
 
-                  <p className="mt-1 text-sm text-[#81878d]">
-                    OM-2048 · Deadline in 48 hours
+                  <p className="mt-1 text-sm text-[#858b91]">
+                    Latest fulfilment activity.
                   </p>
                 </div>
 
-                <button className="rounded-lg bg-[#18201d] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#27312d]">
-                  View Coalition
-                </button>
+                <Link
+                  href="/orders"
+                  className="text-sm font-semibold text-[#34745a]"
+                >
+                  View all →
+                </Link>
               </div>
 
-              <div className="mt-7 grid gap-5 md:grid-cols-4">
-                <div>
-                  <p className="text-xs text-[#92979d]">Requested</p>
-                  <p className="mt-1 text-sm font-semibold">500 units</p>
-                </div>
+              <div className="mt-4 space-y-3">
+                {recentOrders.length === 0 ? (
+                  <div className="rounded-xl border bg-white p-6">
+                    No orders yet.
+                  </div>
+                ) : (
+                  recentOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="rounded-xl border border-[#e2e5e7] bg-white p-5"
+                    >
+                      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
 
-                <div>
-                  <p className="text-xs text-[#92979d]">Own Capacity</p>
-                  <p className="mt-1 text-sm font-semibold">200 units</p>
-                </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">
+                              OM-
+                              {String(order.id).padStart(
+                                4,
+                                "0"
+                              )}
+                            </p>
 
-                <div>
-                  <p className="text-xs text-[#92979d]">Overflow Needed</p>
-                  <p className="mt-1 text-sm font-semibold">300 units</p>
-                </div>
+                            <span className="rounded-full bg-[#f2f5f3] px-2.5 py-1 text-xs capitalize">
+                              {order.status}
+                            </span>
 
-                <div>
-                  <p className="text-xs text-[#92979d]">Budget</p>
-                  <p className="mt-1 text-sm font-semibold">₹80,000</p>
-                </div>
-              </div>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs ${
+                                order.payment_status === "paid"
+                                  ? "bg-[#e8f5ed] text-[#34745a]"
+                                  : "bg-[#fff4e8] text-[#946c24]"
+                              }`}
+                            >
+                              {order.payment_status === "paid"
+                                ? "Paid"
+                                : "Unpaid"}
+                            </span>
+                          </div>
 
-              <div className="mt-7">
-                <div className="mb-2 flex justify-between text-xs">
-                  <span className="text-[#747b82]">Capacity secured</span>
-                  <span className="font-medium">460 / 500 units</span>
-                </div>
+                          <h4 className="mt-2 font-medium">
+                            {order.product}
+                          </h4>
 
-                <div className="h-2 overflow-hidden rounded-full bg-[#edf0ee]">
-                  <div className="h-full w-[92%] rounded-full bg-[#2f7d5c]" />
-                </div>
+                          <p className="mt-1 text-xs text-[#92979c]">
+                            {order.city ||
+                              "Location not specified"}
+                          </p>
+                        </div>
 
-                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs text-[#83898f]">
-                  <span>200 own capacity</span>
-                  <span>260 network capacity</span>
-                  <span className="font-medium text-[#9b6b19]">
-                    40 units remaining
-                  </span>
-                </div>
-              </div>
-            </div>
+                        <div className="flex gap-8">
 
-            {/* Recent Orders */}
-            <div className="mt-6 rounded-xl border border-[#e3e5e7] bg-white">
-              <div className="flex items-center justify-between border-b border-[#eceeef] px-6 py-5">
-                <div>
-                  <h3 className="text-sm font-semibold">Recent Orders</h3>
-                  <p className="mt-1 text-xs text-[#92979d]">
-                    Latest overflow activity across your business.
-                  </p>
-                </div>
+                          <div>
+                            <p className="text-xs text-[#92979c]">
+                              Quantity
+                            </p>
 
-                <button className="text-xs font-medium text-[#34745a]">
-                  View all orders
-                </button>
-              </div>
+                            <p className="mt-1 text-sm font-semibold">
+                              {order.requested_quantity.toLocaleString(
+                                "en-IN"
+                              )}
+                            </p>
+                          </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left">
-                  <thead>
-                    <tr className="border-b border-[#eceeef] bg-[#fafafa] text-[11px] uppercase tracking-[0.08em] text-[#989da2]">
-                      <th className="px-6 py-3 font-medium">Order</th>
-                      <th className="px-6 py-3 font-medium">Requirement</th>
-                      <th className="px-6 py-3 font-medium">Requested</th>
-                      <th className="px-6 py-3 font-medium">Overflow</th>
-                      <th className="px-6 py-3 font-medium">Value</th>
-                      <th className="px-6 py-3 font-medium">Status</th>
-                    </tr>
-                  </thead>
+                          <div>
+                            <p className="text-xs text-[#92979c]">
+                              Network Cost
+                            </p>
 
-                  <tbody>
-                    {orders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b border-[#f0f1f2] last:border-0"
-                      >
-                        <td className="px-6 py-4 text-sm font-medium">
-                          {order.id}
-                        </td>
-
-                        <td className="px-6 py-4 text-sm text-[#5e656c]">
-                          {order.product}
-                        </td>
-
-                        <td className="px-6 py-4 text-sm text-[#5e656c]">
-                          {order.requested}
-                        </td>
-
-                        <td className="px-6 py-4 text-sm text-[#5e656c]">
-                          {order.overflow}
-                        </td>
-
-                        <td className="px-6 py-4 text-sm font-medium">
-                          {order.value}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                              order.status === "Fulfilled"
-                                ? "bg-[#eff8f3] text-[#34745a]"
-                                : order.status === "Coalition Active"
-                                  ? "bg-[#eef4ff] text-[#3f5f99]"
-                                  : "bg-[#fff7df] text-[#8a681d]"
-                            }`}
-                          >
-                            {order.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                            <p className="mt-1 text-sm font-semibold">
+                              ₹
+                              {Number(
+                                order.estimated_network_cost
+                              ).toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

@@ -1,295 +1,705 @@
-const metrics = [
-  {
-    label: "Revenue Unlocked",
-    value: "₹4.82L",
-    note: "From orders that exceeded your own capacity",
-    highlight: true,
-  },
-  {
-    label: "Orders Saved",
-    value: "23",
-    note: "Orders completed using network capacity",
-  },
-  {
-    label: "Capacity Borrowed",
-    value: "3,420",
-    suffix: "units",
-    note: "From verified fulfilment partners",
-  },
-  {
-    label: "Recoveries Completed",
-    value: "7",
-    note: "Partner failures recovered automatically",
-  },
-];
+"use client";
 
-const orders = [
-  {
-    id: "OM-2048",
-    product: "Custom Cotton T-Shirts",
-    ownCapacity: 1200,
-    borrowed: 300,
-    revenue: "₹76,500",
-    partners: 3,
-    status: "Active",
-  },
-  {
-    id: "OM-2045",
-    product: "Printed Hoodies",
-    ownCapacity: 150,
-    borrowed: 90,
-    revenue: "₹1,08,400",
-    partners: 2,
-    status: "Completed",
-  },
-  {
-    id: "OM-2041",
-    product: "Corporate Polo Shirts",
-    ownCapacity: 230,
-    borrowed: 120,
-    revenue: "₹84,000",
-    partners: 2,
-    status: "Completed",
-  },
-  {
-    id: "OM-2038",
-    product: "Event Merchandise",
-    ownCapacity: 400,
-    borrowed: 180,
-    revenue: "₹92,600",
-    partners: 3,
-    status: "Recovered",
-  },
-];
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabase";
+
+type Order = {
+  id: number;
+  product: string;
+  category: string | null;
+  city: string | null;
+  requested_quantity: number;
+  secured_capacity: number;
+  estimated_network_cost: number;
+  status: string;
+  payment_status: string;
+  created_at: string;
+};
 
 export default function AnalyticsPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadAnalytics() {
+      setLoading(true);
+      setError("");
+
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          id,
+          product,
+          category,
+          city,
+          requested_quantity,
+          secured_capacity,
+          estimated_network_cost,
+          status,
+          payment_status,
+          created_at
+        `)
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (error) {
+        console.error(error);
+        setError(error.message);
+      } else {
+        setOrders((data || []) as Order[]);
+      }
+
+      setLoading(false);
+    }
+
+    loadAnalytics();
+  }, []);
+
+  const analytics = useMemo(() => {
+    const totalOrders = orders.length;
+
+    const paidOrders = orders.filter(
+      (order) => order.payment_status === "paid"
+    );
+
+    const unpaidOrders = orders.filter(
+      (order) => order.payment_status !== "paid"
+    );
+
+    const recoveredOrders = orders.filter(
+      (order) => order.status === "recovered"
+    );
+
+    const paidRevenue = paidOrders.reduce(
+      (total, order) =>
+        total + Number(order.estimated_network_cost),
+      0
+    );
+
+    const averageOrderValue =
+      paidOrders.length > 0
+        ? paidRevenue / paidOrders.length
+        : 0;
+
+    const recoveryRate =
+      totalOrders > 0
+        ? (recoveredOrders.length / totalOrders) * 100
+        : 0;
+
+    const totalDemand = orders.reduce(
+      (total, order) =>
+        total + Number(order.requested_quantity),
+      0
+    );
+
+    const productMap = new Map<
+      string,
+      {
+        quantity: number;
+        orders: number;
+        value: number;
+      }
+    >();
+
+    orders.forEach((order) => {
+      const current = productMap.get(order.product) || {
+        quantity: 0,
+        orders: 0,
+        value: 0,
+      };
+
+      productMap.set(order.product, {
+        quantity:
+          current.quantity +
+          Number(order.requested_quantity),
+
+        orders: current.orders + 1,
+
+        value:
+          current.value +
+          Number(order.estimated_network_cost),
+      });
+    });
+
+    const productDemand = Array.from(
+      productMap.entries()
+    )
+      .map(([product, values]) => ({
+        product,
+        ...values,
+      }))
+      .sort((a, b) => b.quantity - a.quantity);
+
+    const cityMap = new Map<
+      string,
+      {
+        orders: number;
+        quantity: number;
+      }
+    >();
+
+    orders.forEach((order) => {
+      const city =
+        order.city?.trim() || "Not specified";
+
+      const current = cityMap.get(city) || {
+        orders: 0,
+        quantity: 0,
+      };
+
+      cityMap.set(city, {
+        orders: current.orders + 1,
+        quantity:
+          current.quantity +
+          Number(order.requested_quantity),
+      });
+    });
+
+    const cityDemand = Array.from(cityMap.entries())
+      .map(([city, values]) => ({
+        city,
+        ...values,
+      }))
+      .sort((a, b) => b.orders - a.orders);
+
+    return {
+      totalOrders,
+      paidOrders: paidOrders.length,
+      unpaidOrders: unpaidOrders.length,
+      recoveredOrders: recoveredOrders.length,
+
+      paidRevenue,
+      averageOrderValue,
+      recoveryRate,
+      totalDemand,
+
+      productDemand,
+      cityDemand,
+    };
+  }, [orders]);
+
+  const maxProductDemand =
+    analytics.productDemand.length > 0
+      ? Math.max(
+          ...analytics.productDemand.map(
+            (item) => item.quantity
+          )
+        )
+      : 1;
+
+  const maxCityOrders =
+    analytics.cityDemand.length > 0
+      ? Math.max(
+          ...analytics.cityDemand.map(
+            (item) => item.orders
+          )
+        )
+      : 1;
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f6f7f8] p-10">
+        Loading OverMesh analytics...
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#f6f7f8] p-10">
+        <div className="mx-auto max-w-7xl rounded-xl border border-red-200 bg-white p-8">
+          <h1 className="text-xl font-semibold">
+            Could not load analytics
+          </h1>
+
+          <p className="mt-2 text-sm text-red-600">
+            {error}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f7f8] px-6 py-10 text-[#17191c]">
       <div className="mx-auto max-w-7xl">
+
         {/* Header */}
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#718078]">
-            Business Impact
-          </p>
+       <div className="relative overflow-hidden rounded-[28px] border border-emerald-900/10 bg-[#102018] px-8 py-8 text-white shadow-[0_18px_50px_rgba(18,45,33,0.14)] md:px-10 md:py-9">
 
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            OverMesh Analytics
-          </h1>
+  {/* Ambient depth */}
+  <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+  <div className="pointer-events-none absolute bottom-0 left-1/3 h-32 w-64 rounded-full bg-emerald-300/5 blur-3xl" />
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#737a81]">
-            See how much revenue your business retained by using shared merchant
-            capacity instead of rejecting large orders.
-          </p>
+  <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+
+    <div>
+      <div className="flex items-center gap-2">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-30" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+        </span>
+
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/70">
+          Network Intelligence
+        </p>
+      </div>
+
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
+        Analytics
+      </h1>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+        Live operational, payment and fulfilment intelligence generated from
+        OverMesh network activity.
+      </p>
+    </div>
+
+    <div className="hidden items-center gap-2 rounded-full border border-emerald-300/10 bg-white/5 px-4 py-2 text-[11px] font-medium text-emerald-100/80 md:flex">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-30" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+      </span>
+      Live Intelligence Feed
+    </div>
+
+          <Link
+            href="/orders/new"
+            className="w-fit rounded-lg bg-[#17201c] px-5 py-2.5 text-sm font-medium text-white"
+          >
+            + Create Order
+          </Link>
+
+  </div>
         </div>
 
-        {/* Metrics */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((metric) => (
-            <div
-              key={metric.label}
-              className={`rounded-xl border p-5 ${
-                metric.highlight
-                  ? "border-[#bfd9c9] bg-[#f3faf6]"
-                  : "border-[#e2e5e7] bg-white"
-              }`}
-            >
-              <p className="text-sm text-[#737a81]">{metric.label}</p>
+        {/* Main metrics */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div className="flash-card analytics-kpi-card group rounded-[24px] border border-[#d8e5de] bg-gradient-to-br from-white via-[#fbfdfc] to-[#f1f7f3] p-6 shadow-[0_12px_34px_rgba(20,35,28,0.07)] transition-all duration-300 hover:border-[#abcdbb] hover:shadow-[0_22px_48px_rgba(20,35,28,0.13)]">
 
-              <div className="mt-4 flex items-baseline gap-2">
-                <p className="text-3xl font-semibold tracking-tight">
-                  {metric.value}
-                </p>
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#718078]">
+        Total Orders
+      </p>
 
-                {metric.suffix && (
-                  <span className="text-sm text-[#858b91]">
-                    {metric.suffix}
-                  </span>
-                )}
-              </div>
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-[#14231c]">
+        {analytics.totalOrders}
+      </p>
+    </div>
 
-              <p className="mt-3 text-xs leading-5 text-[#8d9398]">
-                {metric.note}
-              </p>
-            </div>
-          ))}
+    <div className="flex h-11 w-11 items-center justify-center rounded-[17px] border border-[#dce8e1] bg-[#eef6f1] text-lg font-semibold text-[#159a69]">
+      ↗
+    </div>
+  </div>
+
+  <div className="mt-3 flex items-center gap-2">
+    <span className="h-2 w-2 rounded-full bg-[#159a69]" />
+
+    <p className="text-xs text-[#718078]">
+      Live orders stored in Supabase
+    </p>
+  </div>
+
+</div>
+
+          <div className="flash-card analytics-kpi-card group rounded-[24px] border border-[#b9ddc9] bg-gradient-to-br from-[#e7f6ed] via-[#f4faf6] to-white p-6 shadow-[0_12px_34px_rgba(20,35,28,0.08)] transition-all duration-300 hover:border-[#8fc3a7] hover:shadow-[0_22px_48px_rgba(20,35,28,0.14)]">
+
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#5f786a]">
+        Verified Network Value
+      </p>
+
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-[#14231c]">
+        ₹{analytics.paidRevenue.toLocaleString("en-IN")}
+      </p>
+    </div>
+
+    <div className="flex h-11 w-11 items-center justify-center rounded-[17px] border border-white/70 bg-white/75 text-lg font-semibold text-[#159a69] shadow-sm">
+      ₹
+    </div>
+  </div>
+
+  <div className="mt-3 flex items-center gap-2">
+    <span className="relative flex h-2 w-2">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-30" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+    </span>
+
+    <p className="text-xs text-[#60796b]">
+      Razorpay verified payments
+    </p>
+  </div>
+
+</div>
+
+          <div className="flash-card analytics-kpi-card group rounded-[24px] border border-[#c7dfd3] bg-gradient-to-br from-[#edf8f2] via-[#f7fbf9] to-white p-6 shadow-[0_12px_34px_rgba(20,35,28,0.07)] transition-all duration-300 hover:border-[#9fcbb5] hover:shadow-[0_22px_48px_rgba(20,35,28,0.13)]">
+
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#667d70]">
+        Self-Healed Orders
+      </p>
+
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-[#14231c]">
+        {analytics.recoveredOrders}
+      </p>
+    </div>
+
+    <div className="flex h-11 w-11 items-center justify-center rounded-[17px] border border-[#d7e8df] bg-white/80 text-xl text-[#159a69]">
+      ↻
+    </div>
+  </div>
+
+  <div className="mt-3 flex items-center gap-2">
+    <span className="relative flex h-2 w-2">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-25" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+    </span>
+
+    <p className="text-xs text-[#6d8176]">
+      Automatically recovered after disruption
+    </p>
+  </div>
+
+</div>
+<div className="flash-card analytics-kpi-card group rounded-[24px] border border-[#d4e2da] bg-gradient-to-br from-white via-[#f8fbf9] to-[#eef6f2] p-6 shadow-[0_12px_34px_rgba(20,35,28,0.07)] transition-all duration-300 hover:border-[#a9c9b8] hover:shadow-[0_22px_48px_rgba(20,35,28,0.13)]">
+
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#6b7f74]">
+        Recovery Rate
+      </p>
+
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-[#14231c]">
+        {analytics.recoveryRate.toFixed(1)}%
+      </p>
+    </div>
+
+    <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#d6e6dd] bg-white/80">
+      <div className="absolute inset-[5px] rounded-full border-2 border-emerald-400/70" />
+
+      <span className="text-xs font-semibold text-[#159a69]">
+        %
+      </span>
+    </div>
+  </div>
+
+  <p className="mt-3 text-xs text-[#708178]">
+    Self-healed orders compared with total network orders
+  </p>
+
+</div>
         </div>
 
-        {/* Revenue impact */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <div className="rounded-xl border border-[#e2e5e7] bg-white p-6 lg:col-span-2">
-            <div>
-              <h2 className="text-lg font-semibold">Revenue Impact</h2>
+        {/* Secondary metrics */}
+        <div className="mt-4 grid gap-4 md:grid-cols-4">
 
-              <p className="mt-1 text-sm text-[#858b91]">
-                Revenue generated from orders that could not be fulfilled using
-                your own capacity alone.
+          <div className="rounded-xl border border-[#e2e5e7] bg-white p-5">
+            <p className="text-xs text-[#92979c]">
+              Paid Orders
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              {analytics.paidOrders}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-[#e2e5e7] bg-white p-5">
+            <p className="text-xs text-[#92979c]">
+              Unpaid Orders
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              {analytics.unpaidOrders}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-[#e2e5e7] bg-white p-5">
+            <p className="text-xs text-[#92979c]">
+              Avg. Paid Order Value
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              ₹
+              {Math.round(
+                analytics.averageOrderValue
+              ).toLocaleString("en-IN")}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-[#e2e5e7] bg-white p-5">
+            <p className="text-xs text-[#92979c]">
+              Total Demand
+            </p>
+
+            <p className="mt-2 text-xl font-semibold">
+              {analytics.totalDemand.toLocaleString(
+                "en-IN"
+              )}
+            </p>
+          </div>
+        </div>
+
+        {/* Payment overview */}
+        <div className="mt-8 rounded-xl border border-[#e2e5e7] bg-white p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718078]">
+            Payment Health
+          </p>
+
+          <h2 className="mt-2 text-xl font-semibold">
+            Paid vs Unpaid Orders
+          </h2>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+
+            <div className="rounded-lg bg-[#f5faf7] p-5">
+              <p className="text-sm text-[#65736b]">
+                Razorpay Verified
               </p>
+
+              <div className="mt-3 flex items-end justify-between">
+                <p className="text-3xl font-semibold">
+                  {analytics.paidOrders}
+                </p>
+
+                <span className="rounded-full bg-[#e7f4eb] px-3 py-1 text-xs font-medium text-[#34745a]">
+                  Paid
+                </span>
+              </div>
             </div>
 
-            <div className="mt-8">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-xs text-[#8d9398]">This month</p>
-                  <p className="mt-1 text-4xl font-semibold">₹4,82,650</p>
-                </div>
+            <div className="rounded-lg bg-[#fff9ef] p-5">
+              <p className="text-sm text-[#796f5e]">
+                Awaiting Payment
+              </p>
 
-                <div className="text-right">
-                  <p className="text-xs text-[#8d9398]">
-                    Without OverMesh
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-[#a44d4d]">
-                    ₹0
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-8 rounded-lg bg-[#f4f7f5] p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.1em] text-[#668071]">
-                  Revenue unlocked
+              <div className="mt-3 flex items-end justify-between">
+                <p className="text-3xl font-semibold">
+                  {analytics.unpaidOrders}
                 </p>
 
-                <p className="mt-2 text-sm leading-6 text-[#60686d]">
-                  These orders were larger than your available capacity and
-                  would otherwise have been rejected or delayed.
-                </p>
+                <span className="rounded-full bg-[#fff1d8] px-3 py-1 text-xs font-medium text-[#946c24]">
+                  Unpaid
+                </span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Network efficiency */}
+        {/* Product demand */}
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+
           <div className="rounded-xl border border-[#e2e5e7] bg-white p-6">
-            <h2 className="text-lg font-semibold">Network Efficiency</h2>
-
-            <p className="mt-1 text-sm text-[#858b91]">
-              How effectively OverMesh is using partner capacity.
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718078]">
+              Demand Intelligence
             </p>
 
-            <div className="mt-7 space-y-6">
-              <div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#747b81]">
-                    Coalition success rate
-                  </span>
-                  <span className="font-semibold">94%</span>
-                </div>
+            <h2 className="mt-2 text-xl font-semibold">
+              Product Demand
+            </h2>
 
-                <div className="mt-2 h-2 rounded-full bg-[#edf0ee]">
-                  <div className="h-full w-[94%] rounded-full bg-[#37815f]" />
-                </div>
-              </div>
+            <p className="mt-1 text-sm text-[#858b91]">
+              Products ranked by total requested quantity.
+            </p>
 
-              <div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#747b81]">
-                    Recovery success rate
-                  </span>
-                  <span className="font-semibold">87%</span>
-                </div>
+            <div className="mt-6 space-y-5">
+              {analytics.productDemand.length === 0 ? (
+                <p className="text-sm text-[#92979c]">
+                  No product data available.
+                </p>
+              ) : (
+                analytics.productDemand
+                  .slice(0, 8)
+                  .map((item) => {
+                    const width =
+                      (item.quantity /
+                        maxProductDemand) *
+                      100;
 
-                <div className="mt-2 h-2 rounded-full bg-[#edf0ee]">
-                  <div className="h-full w-[87%] rounded-full bg-[#37815f]" />
-                </div>
-              </div>
+                    return (
+                      <div key={item.product}>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold">
+                              {item.product}
+                            </p>
 
-              <div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#747b81]">
-                    Partner reliability
-                  </span>
-                  <span className="font-semibold">96%</span>
-                </div>
+                            <p className="mt-1 text-xs text-[#92979c]">
+                              {item.orders} order
+                              {item.orders === 1 ? "" : "s"}
+                            </p>
+                          </div>
 
-                <div className="mt-2 h-2 rounded-full bg-[#edf0ee]">
-                  <div className="h-full w-[96%] rounded-full bg-[#37815f]" />
-                </div>
-              </div>
+                          <p className="text-sm font-semibold">
+                            {item.quantity.toLocaleString(
+                              "en-IN"
+                            )}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 h-3 overflow-hidden rounded-full border border-[#dbe7e0] bg-[#edf3ef] shadow-inner">
+                          <div
+                            className="analytics-demand-bar h-full rounded-full bg-gradient-to-r from-[#1f8f64] via-[#34c98a] to-[#8ee0ba] shadow-[0_0_14px_rgba(52,201,138,0.35)]"
+                            style={{
+                              width: `${width}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+
+          {/* City demand */}
+          <div className="rounded-xl border border-[#e2e5e7] bg-white p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718078]">
+              Location Intelligence
+            </p>
+
+            <h2 className="mt-2 text-xl font-semibold">
+              City-wise Demand
+            </h2>
+
+            <p className="mt-1 text-sm text-[#858b91]">
+              Cities ranked by number of fulfilment requests.
+            </p>
+
+            <div className="mt-6 space-y-5">
+              {analytics.cityDemand.length === 0 ? (
+                <p className="text-sm text-[#92979c]">
+                  No city data available.
+                </p>
+              ) : (
+                analytics.cityDemand
+                  .slice(0, 8)
+                  .map((item) => {
+                    const width =
+                      (item.orders /
+                        maxCityOrders) *
+                      100;
+
+                    return (
+                      <div key={item.city}>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold">
+                              {item.city}
+                            </p>
+
+                            <p className="mt-1 text-xs text-[#92979c]">
+                              {item.quantity.toLocaleString(
+                                "en-IN"
+                              )}{" "}
+                              requested units
+                            </p>
+                          </div>
+
+                          <p className="text-sm font-semibold">
+                            {item.orders} order
+                            {item.orders === 1 ? "" : "s"}
+                          </p>
+                        </div>
+
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#edf0ee]">
+                          <div
+                            className="h-full rounded-full bg-[#667287]"
+                            style={{
+                              width: `${width}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </div>
         </div>
 
-        {/* Orders table */}
-        <div className="mt-6 rounded-xl border border-[#e2e5e7] bg-white">
-          <div className="border-b border-[#eceeef] px-6 py-5">
-            <h2 className="text-lg font-semibold">Revenue-Saved Orders</h2>
+        {/* Recent business activity */}
+        <div className="mt-8 rounded-xl border border-[#e2e5e7] bg-white p-6">
 
-            <p className="mt-1 text-sm text-[#858b91]">
-              Orders completed through borrowed merchant capacity.
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718078]">
+                Network Activity
+              </p>
+
+              <h2 className="mt-2 text-xl font-semibold">
+                Recent Orders
+              </h2>
+            </div>
+
+            <Link
+              href="/orders"
+              className="text-sm font-semibold text-[#34745a]"
+            >
+              View all →
+            </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
-              <thead>
-                <tr className="border-b border-[#eceeef] bg-[#fafafa] text-xs text-[#8e9499]">
-                  <th className="px-6 py-4 font-medium">Order</th>
-                  <th className="px-6 py-4 font-medium">Requirement</th>
-                  <th className="px-6 py-4 font-medium">Own Capacity</th>
-                  <th className="px-6 py-4 font-medium">Borrowed</th>
-                  <th className="px-6 py-4 font-medium">Partners</th>
-                  <th className="px-6 py-4 font-medium">Revenue</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                </tr>
-              </thead>
+          <div className="mt-5 divide-y divide-[#edf0ee]">
+            {orders.slice(0, 6).map((order) => (
+              <div
+                key={order.id}
+                className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center"
+              >
+                <div>
+                  <p className="text-sm font-semibold">
+                    OM-
+                    {String(order.id).padStart(4, "0")}
+                    {" · "}
+                    {order.product}
+                  </p>
 
-              <tbody>
-                {orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-[#f0f1f2] last:border-0"
+                  <p className="mt-1 text-xs text-[#92979c]">
+                    {order.city || "Location not specified"} ·{" "}
+                    {new Date(
+                      order.created_at
+                    ).toLocaleDateString("en-IN")}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs capitalize ${
+                      order.status === "recovered"
+                        ? "bg-[#edf1ff] text-[#4c5d94]"
+                        : "bg-[#edf7f1] text-[#34745a]"
+                    }`}
                   >
-                    <td className="px-6 py-4 text-sm font-semibold">
-                      {order.id}
-                    </td>
+                    {order.status}
+                  </span>
 
-                    <td className="px-6 py-4 text-sm text-[#5f666c]">
-                      {order.product}
-                    </td>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs ${
+                      order.payment_status === "paid"
+                        ? "bg-[#e8f5ed] text-[#34745a]"
+                        : "bg-[#fff4e8] text-[#946c24]"
+                    }`}
+                  >
+                    {order.payment_status === "paid"
+                      ? "Paid"
+                      : "Unpaid"}
+                  </span>
 
-                    <td className="px-6 py-4 text-sm">
-                      {order.ownCapacity} units
-                    </td>
-
-                    <td className="px-6 py-4 text-sm">
-                      {order.borrowed} units
-                    </td>
-
-                    <td className="px-6 py-4 text-sm">{order.partners}</td>
-
-                    <td className="px-6 py-4 text-sm font-semibold">
-                      {order.revenue}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                          order.status === "Recovered"
-                            ? "bg-[#fff6df] text-[#8b6a21]"
-                            : order.status === "Active"
-                              ? "bg-[#eef4ff] text-[#47649a]"
-                              : "bg-[#edf7f1] text-[#34745a]"
-                        }`}
-                      >
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  <span className="text-sm font-semibold">
+                    ₹
+                    {Number(
+                      order.estimated_network_cost
+                    ).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-
-        {/* Impact message */}
-        <div className="mt-6 rounded-xl border border-[#d5e4db] bg-[#f8fcf9] p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#587365]">
-            OverMesh Impact
-          </p>
-
-          <p className="mt-2 max-w-4xl text-lg font-semibold leading-7">
-            23 orders that your business could not fulfil independently were
-            completed using shared merchant capacity, unlocking ₹4.82 lakh in
-            additional revenue.
-          </p>
         </div>
       </div>
     </main>

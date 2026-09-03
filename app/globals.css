@@ -24,3 +24,1250 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+/* ========================================
+   OVERMESH 3D NETWORK ANIMATION
+======================================== */
+
+.network-stage {
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+
+/* ---------- CONNECTION LINES ---------- */
+
+.network-link {
+  position: absolute;
+  height: 1px;
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(110, 231, 183, 0.08),
+    rgba(167, 243, 208, 0.42),
+    rgba(110, 231, 183, 0.08),
+    transparent
+  );
+  opacity: 0.7;
+  animation: networkLinePulse 5s ease-in-out infinite;
+}
+
+.link-1 {
+  width: 44%;
+  left: 7%;
+  top: 31%;
+  transform: rotate(14deg);
+}
+
+.link-2 {
+  width: 47%;
+  left: 18%;
+  top: 60%;
+  transform: rotate(-18deg);
+  animation-delay: 1s;
+}
+
+.link-3 {
+  width: 37%;
+  left: 46%;
+  top: 26%;
+  transform: rotate(22deg);
+  animation-delay: 1.7s;
+}
+
+.link-4 {
+  width: 36%;
+  left: 50%;
+  top: 64%;
+  transform: rotate(-24deg);
+  animation-delay: 0.7s;
+}
+
+.link-5 {
+  width: 50%;
+  left: 25%;
+  top: 46%;
+  transform: rotate(4deg);
+  animation-delay: 2.2s;
+}
+
+.link-6 {
+  width: 30%;
+  left: 56%;
+  top: 45%;
+  transform: rotate(38deg);
+  animation-delay: 1.3s;
+}
+
+
+/* ---------- NETWORK NODES ---------- */
+
+.network-node {
+  position: absolute;
+
+  border-radius: 9999px;
+
+  background: radial-gradient(
+    circle,
+    #d1fae5 0%,
+    #6ee7b7 35%,
+    #10b981 68%,
+    rgba(16, 185, 129, 0.15) 100%
+  );
+
+  box-shadow:
+    0 0 8px rgba(110, 231, 183, 0.65),
+    0 0 22px rgba(52, 211, 153, 0.35),
+    0 0 45px rgba(16, 185, 129, 0.15);
+
+  animation:
+    networkFloatA 8s ease-in-out infinite alternate,
+    networkGlow 3s ease-in-out infinite;
+}
+
+
+/* Spread nodes across the full visual */
+
+.node-1 {
+  width: 11px;
+  height: 11px;
+  left: 7%;
+  top: 29%;
+}
+
+.node-2 {
+  width: 18px;
+  height: 18px;
+  left: 24%;
+  top: 57%;
+  animation-name: networkFloatB, networkGlow;
+  animation-delay: -2s;
+}
+
+.node-3 {
+  width: 8px;
+  height: 8px;
+  left: 37%;
+  top: 18%;
+  animation-delay: -4s;
+}
+
+.node-4 {
+  width: 14px;
+  height: 14px;
+  left: 49%;
+  top: 43%;
+  animation-name: networkFloatB, networkGlow;
+  animation-delay: -1s;
+}
+
+.node-5 {
+  width: 21px;
+  height: 21px;
+  left: 66%;
+  top: 26%;
+  animation-delay: -5s;
+}
+
+.node-6 {
+  width: 10px;
+  height: 10px;
+  left: 73%;
+  top: 66%;
+  animation-name: networkFloatB, networkGlow;
+  animation-delay: -3s;
+}
+
+.node-7 {
+  width: 15px;
+  height: 15px;
+  left: 88%;
+  top: 45%;
+  animation-delay: -6s;
+}
+
+.node-8 {
+  width: 7px;
+  height: 7px;
+  left: 58%;
+  top: 73%;
+  animation-name: networkFloatB, networkGlow;
+  animation-delay: -2.5s;
+}
+
+.node-9 {
+  width: 9px;
+  height: 9px;
+  left: 91%;
+  top: 17%;
+  animation-delay: -3.7s;
+}
+
+
+/* ---------- PARTICLES ---------- */
+
+.network-particle {
+  position: absolute;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 9999px;
+
+  background: rgba(167, 243, 208, 0.9);
+
+  box-shadow:
+    0 0 8px rgba(110, 231, 183, 0.8);
+
+  animation: networkParticleMove 10s linear infinite;
+}
+
+.particle-a {
+  left: 10%;
+  top: 70%;
+}
+
+.particle-b {
+  left: 31%;
+  top: 14%;
+  animation-delay: -3s;
+}
+
+.particle-c {
+  left: 53%;
+  top: 53%;
+  animation-delay: -6s;
+}
+
+.particle-d {
+  left: 78%;
+  top: 21%;
+  animation-delay: -2s;
+}
+
+.particle-e {
+  left: 89%;
+  top: 73%;
+  animation-delay: -7s;
+}
+
+.particle-f {
+  left: 44%;
+  top: 80%;
+  animation-delay: -4s;
+}
+
+
+/* ---------- CENTRAL AI NODE ---------- */
+
+.network-core {
+  position: absolute;
+
+  left: 52%;
+  top: 42%;
+
+  width: 48px;
+  height: 48px;
+
+  border: 1px solid rgba(167, 243, 208, 0.14);
+  border-radius: 9999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  animation: coreOrbit 8s ease-in-out infinite;
+}
+
+.network-core::before {
+  content: "";
+
+  position: absolute;
+  inset: -12px;
+
+  border-radius: 9999px;
+
+  border: 1px solid rgba(110, 231, 183, 0.08);
+
+  animation: corePulse 3s ease-out infinite;
+}
+
+.network-core span {
+  width: 9px;
+  height: 9px;
+
+  border-radius: 9999px;
+
+  background: #a7f3d0;
+
+  box-shadow:
+    0 0 10px rgba(167, 243, 208, 0.8),
+    0 0 30px rgba(52, 211, 153, 0.5);
+}
+
+
+/* ---------- MOTION ---------- */
+
+@keyframes networkFloatA {
+  0% {
+    transform: translate3d(-8px, 6px, -8px) scale(0.94);
+  }
+
+  35% {
+    transform: translate3d(16px, -15px, 20px) scale(1.08);
+  }
+
+  70% {
+    transform: translate3d(-12px, -5px, 35px) scale(1.02);
+  }
+
+  100% {
+    transform: translate3d(20px, 18px, -5px) scale(0.97);
+  }
+}
+
+
+@keyframes networkFloatB {
+  0% {
+    transform: translate3d(12px, -8px, 15px) scale(1);
+  }
+
+  35% {
+    transform: translate3d(-18px, 16px, -10px) scale(0.92);
+  }
+
+  70% {
+    transform: translate3d(14px, 5px, 30px) scale(1.1);
+  }
+
+  100% {
+    transform: translate3d(-10px, -18px, 5px) scale(1);
+  }
+}
+
+
+@keyframes networkGlow {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+
+@keyframes networkParticleMove {
+  0% {
+    transform: translate3d(-15px, 25px, 0);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: translate3d(25px, -25px, 20px);
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translate3d(55px, -60px, -10px);
+    opacity: 0;
+  }
+}
+
+
+@keyframes networkLinePulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+
+@keyframes coreOrbit {
+  0%,
+  100% {
+    transform: translate3d(-5px, 3px, 0);
+  }
+
+  50% {
+    transform: translate3d(10px, -8px, 25px);
+  }
+}
+
+
+@keyframes corePulse {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .network-node,
+  .network-link,
+  .network-particle,
+  .network-core,
+  .network-core::before {
+    animation: none !important;
+  }
+}
+/* =========================================
+   OVERMESH FULL HERO NETWORK
+========================================= */
+
+.mesh-field {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 1000px;
+}
+
+/* ---------- DOT ---------- */
+
+.mesh-dot {
+  position: absolute;
+  border-radius: 9999px;
+
+  background: radial-gradient(
+    circle,
+    #d1fae5 0%,
+    #6ee7b7 32%,
+    #10b981 68%,
+    rgba(16, 185, 129, 0.1) 100%
+  );
+
+  box-shadow:
+    0 0 8px rgba(167, 243, 208, 0.8),
+    0 0 22px rgba(52, 211, 153, 0.45),
+    0 0 42px rgba(16, 185, 129, 0.18);
+
+  will-change: transform;
+
+  animation:
+    meshPulse 3.5s ease-in-out infinite;
+}
+
+/* ---------- DOT POSITIONS ---------- */
+
+/* LEFT */
+.dot-a {
+  width: 7px;
+  height: 7px;
+  left: 4%;
+  top: 20%;
+}
+
+.dot-b {
+  width: 12px;
+  height: 12px;
+  left: 10%;
+  top: 68%;
+}
+
+.dot-c {
+  width: 6px;
+  height: 6px;
+  left: 20%;
+  top: 42%;
+}
+
+/* CENTER LEFT */
+.dot-d {
+  width: 17px;
+  height: 17px;
+  left: 30%;
+  top: 73%;
+}
+
+.dot-e {
+  width: 9px;
+  height: 9px;
+  left: 38%;
+  top: 15%;
+}
+
+.dot-f {
+  width: 13px;
+  height: 13px;
+  left: 45%;
+  top: 48%;
+}
+
+/* CENTER RIGHT */
+.dot-g {
+  width: 7px;
+  height: 7px;
+  left: 56%;
+  top: 25%;
+}
+
+.dot-h {
+  width: 19px;
+  height: 19px;
+  left: 63%;
+  top: 67%;
+}
+
+.dot-i {
+  width: 10px;
+  height: 10px;
+  left: 70%;
+  top: 39%;
+}
+
+/* RIGHT */
+.dot-j {
+  width: 14px;
+  height: 14px;
+  left: 79%;
+  top: 17%;
+}
+
+.dot-k {
+  width: 7px;
+  height: 7px;
+  left: 86%;
+  top: 70%;
+}
+
+.dot-l {
+  width: 20px;
+  height: 20px;
+  left: 93%;
+  top: 38%;
+}
+
+
+/* ---------- LARGE ROAMING MOTION ---------- */
+
+.roam-a {
+  animation:
+    roamA 13s ease-in-out infinite alternate,
+    meshPulse 3.5s ease-in-out infinite;
+}
+
+.roam-b {
+  animation:
+    roamB 16s ease-in-out infinite alternate,
+    meshPulse 4s ease-in-out infinite;
+}
+
+.roam-c {
+  animation:
+    roamC 11s ease-in-out infinite alternate,
+    meshPulse 3s ease-in-out infinite;
+}
+
+
+/* Moves considerably across card */
+
+@keyframes roamA {
+  0% {
+    transform: translate3d(-15px, 10px, -15px) scale(0.85);
+  }
+
+  25% {
+    transform: translate3d(75px, -35px, 25px) scale(1.08);
+  }
+
+  50% {
+    transform: translate3d(120px, 45px, 50px) scale(1.18);
+  }
+
+  75% {
+    transform: translate3d(40px, 85px, 15px) scale(0.95);
+  }
+
+  100% {
+    transform: translate3d(-50px, 25px, -20px) scale(0.9);
+  }
+}
+
+
+@keyframes roamB {
+  0% {
+    transform: translate3d(40px, -40px, 20px) scale(1);
+  }
+
+  25% {
+    transform: translate3d(-70px, 15px, -20px) scale(0.8);
+  }
+
+  50% {
+    transform: translate3d(-120px, 80px, 30px) scale(1.15);
+  }
+
+  75% {
+    transform: translate3d(40px, 110px, 45px) scale(1.05);
+  }
+
+  100% {
+    transform: translate3d(90px, -25px, 0px) scale(0.9);
+  }
+}
+
+
+@keyframes roamC {
+  0% {
+    transform: translate3d(-40px, 65px, 10px) scale(0.9);
+  }
+
+  25% {
+    transform: translate3d(30px, -75px, 35px) scale(1.12);
+  }
+
+  50% {
+    transform: translate3d(105px, -20px, -10px) scale(0.85);
+  }
+
+  75% {
+    transform: translate3d(-80px, 60px, 50px) scale(1.2);
+  }
+
+  100% {
+    transform: translate3d(50px, 90px, 0px) scale(1);
+  }
+}
+
+
+@keyframes meshPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    filter: brightness(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+}
+
+
+/* ---------- SMALL PARTICLES ---------- */
+
+.mesh-particle {
+  position: absolute;
+
+  width: 3px;
+  height: 3px;
+
+  border-radius: 50%;
+
+  background: rgba(167, 243, 208, 0.85);
+
+  box-shadow:
+    0 0 7px rgba(110, 231, 183, 0.7);
+
+  animation:
+    particleTravel 12s linear infinite;
+}
+
+.particle-x1 {
+  left: 3%;
+  top: 52%;
+}
+
+.particle-x2 {
+  left: 18%;
+  top: 11%;
+  animation-delay: -3s;
+}
+
+.particle-x3 {
+  left: 40%;
+  top: 80%;
+  animation-delay: -6s;
+}
+
+.particle-x4 {
+  left: 58%;
+  top: 15%;
+  animation-delay: -8s;
+}
+
+.particle-x5 {
+  left: 76%;
+  top: 57%;
+  animation-delay: -4s;
+}
+
+.particle-x6 {
+  left: 91%;
+  top: 77%;
+  animation-delay: -10s;
+}
+
+
+@keyframes particleTravel {
+  0% {
+    transform: translate3d(-40px, 30px, 0);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: translate3d(100px, -70px, 20px);
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: translate3d(180px, 45px, -10px);
+    opacity: 0;
+  }
+}
+
+
+/* ---------- DATA TRAILS ---------- */
+
+.mesh-tracer {
+  position: absolute;
+
+  left: -20%;
+
+  width: 160px;
+  height: 1px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(110, 231, 183, 0.45),
+    rgba(209, 250, 229, 0.9),
+    transparent
+  );
+
+  opacity: 0;
+
+  animation: tracerMove 10s linear infinite;
+}
+
+
+.tracer-a {
+  top: 25%;
+}
+
+.tracer-b {
+  top: 51%;
+  animation-delay: -4s;
+}
+
+.tracer-c {
+  top: 76%;
+  animation-delay: -7s;
+}
+
+
+@keyframes tracerMove {
+  0% {
+    left: -20%;
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+
+  85% {
+    opacity: 0.25;
+  }
+
+  100% {
+    left: 110%;
+    opacity: 0;
+  }
+}
+
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-dot,
+  .mesh-particle,
+  .mesh-tracer {
+    animation: none !important;
+  }
+}
+/* Premium hover flash effect */
+ /* Strong premium flash hover */
+.flash-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.flash-card::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -80%;
+  width: 45%;
+  height: 140%;
+
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(255, 255, 255, 0.18) 72%,
+    transparent 100%
+  );
+
+  transform: skewX(-20deg);
+  filter: blur(1px);
+
+  transition:
+    left 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease;
+
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.flash-card:hover::before {
+  left: 135%;
+  opacity: 1;
+}
+
+.flash-card:hover {
+  transform: translateY(-4px) scale(1.01);
+}
+/* OverMesh page design system */
+
+.overmesh-page {
+  background:
+    radial-gradient(
+      circle at 85% 5%,
+      rgba(22, 163, 109, 0.07),
+      transparent 28%
+    ),
+    #f4f7f5;
+}
+
+.overmesh-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #dde7e1;
+  box-shadow: 0 8px 30px rgba(20, 35, 28, 0.045);
+}
+
+.overmesh-soft-card {
+  background: linear-gradient(
+    135deg,
+    #edf7f1,
+    #f8fbf9
+  );
+  border: 1px solid #d3e5da;
+}
+/* Capacity Network live pulse */
+
+.capacity-pulse-strip {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d7e6de;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 75% 50%, rgba(52, 211, 153, 0.11), transparent 30%),
+    linear-gradient(135deg, #f4faf6, #ffffff);
+}
+
+.capacity-pulse-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(16, 185, 129, 0.15),
+    rgba(16, 185, 129, 0.45),
+    rgba(16, 185, 129, 0.15),
+    transparent
+  );
+}
+
+.capacity-pulse-node {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #34d399;
+  box-shadow:
+    0 0 0 5px rgba(52, 211, 153, 0.08),
+    0 0 18px rgba(52, 211, 153, 0.35);
+
+  animation: capacityNodeFloat 4s ease-in-out infinite alternate;
+}
+
+.node-one {
+  left: 18%;
+  animation-delay: 0s;
+}
+
+.node-two {
+  left: 42%;
+  animation-delay: -1.4s;
+}
+
+.node-three {
+  left: 67%;
+  animation-delay: -2.1s;
+}
+
+.node-four {
+  left: 86%;
+  animation-delay: -0.8s;
+}
+
+@keyframes capacityNodeFloat {
+  0% {
+    transform: translate(-8px, -12px) scale(0.85);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: translate(8px, 5px) scale(1.15);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-3px, 11px) scale(0.95);
+    opacity: 0.7;
+  }
+}
+/* Coalition premium 3D depth */
+.coalition-3d-card {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.coalition-3d-card:hover {
+  transform: translateY(-5px) rotateX(1.2deg) rotateY(-1.2deg);
+}
+/* =========================================
+   OVERMESH 3D COALITION NETWORK
+========================================= */
+
+.coalition-network-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d7e6de;
+  border-radius: 22px;
+
+  background:
+    radial-gradient(
+      circle at 75% 40%,
+      rgba(52, 211, 153, 0.12),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(245, 250, 247, 0.96),
+      rgba(255, 255, 255, 0.92)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.8),
+    0 10px 30px rgba(20,35,28,0.05);
+
+  perspective: 900px;
+}
+
+
+/* Requester */
+
+.coalition-requester-node {
+  width: 52px;
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #173a2b,
+      #0f241b
+    );
+
+  color: #d1fae5;
+  font-size: 14px;
+  font-weight: 700;
+
+  border: 1px solid rgba(167,243,208,0.16);
+
+  box-shadow:
+    0 12px 25px rgba(18,45,33,0.18),
+    inset 0 1px 1px rgba(255,255,255,0.08);
+
+  animation: coalitionRequesterFloat 5s ease-in-out infinite;
+}
+
+
+/* Partners */
+
+.coalition-partner-node {
+  min-width: 86px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.coalition-node-orb {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #d1fae5,
+      #34d399 45%,
+      #0f8f63 100%
+    );
+
+  border: 1px solid rgba(167,243,208,0.35);
+
+  box-shadow:
+    0 0 0 7px rgba(52,211,153,0.06),
+    0 8px 20px rgba(16,185,129,0.18),
+    inset -4px -5px 8px rgba(4,120,87,0.22),
+    inset 4px 4px 8px rgba(255,255,255,0.22);
+
+  animation: coalitionNodeFloat 4.8s ease-in-out infinite;
+}
+
+
+.coalition-node-failed {
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #ffe4e6,
+      #fb7185 48%,
+      #be123c 100%
+    );
+
+  border-color: rgba(251,113,133,0.3);
+
+  box-shadow:
+    0 0 0 7px rgba(244,63,94,0.05),
+    0 8px 18px rgba(190,24,93,0.13);
+}
+
+
+/* Flow line */
+
+.coalition-flow-line {
+  position: relative;
+
+  min-width: 70px;
+  height: 1px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(16,185,129,0.12),
+    rgba(16,185,129,0.45),
+    rgba(16,185,129,0.12)
+  );
+}
+
+
+.coalition-flow-line::after {
+  content: "";
+
+  position: absolute;
+  top: -1px;
+  left: 0;
+
+  width: 60px;
+  height: 3px;
+
+  border-radius: 99px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(110,231,183,0.9),
+    transparent
+  );
+
+  filter: blur(0.3px);
+
+  animation: coalitionFlow 3.2s linear infinite;
+}
+
+
+/* Recovery */
+
+.coalition-recovery-chip {
+  display: inline-flex;
+  width: fit-content;
+
+  align-items: center;
+  gap: 8px;
+
+  border: 1px solid #cce3d7;
+  border-radius: 999px;
+
+  background: rgba(238,247,242,0.9);
+
+  padding: 7px 12px;
+
+  color: #47735e;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+
+/* Motion */
+
+@keyframes coalitionFlow {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  100% {
+    left: calc(100% - 60px);
+    opacity: 0;
+  }
+}
+
+
+@keyframes coalitionNodeFloat {
+  0%,
+  100% {
+    transform: translateY(0px) rotateX(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-5px) rotateX(5deg) scale(1.04);
+  }
+}
+
+
+@keyframes coalitionRequesterFloat {
+  0%,
+  100% {
+    transform: translateY(1px) rotateY(-2deg);
+  }
+
+  50% {
+    transform: translateY(-5px) rotateY(4deg);
+  }
+}
+/* Analytics luxury 3D KPI cards */
+
+.analytics-kpi-card {
+  transform-style: preserve-3d;
+  perspective: 900px;
+}
+
+.analytics-kpi-card:hover {
+  transform:
+    translateY(-6px)
+    rotateX(2deg)
+    rotateY(-1.5deg)
+    scale(1.01);
+}
+/* Animated luxury demand bars */
+
+.analytics-demand-bar {
+  position: relative;
+  transform-origin: left center;
+  animation: demandBarGrow 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.analytics-demand-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.55) 48%,
+    transparent 72%
+  );
+
+  transform: translateX(-120%);
+  animation: demandBarShine 3.4s ease-in-out infinite;
+}
+
+@keyframes demandBarGrow {
+  from {
+    transform: scaleX(0);
+    opacity: 0.4;
+  }
+
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes demandBarShine {
+  0%,
+  55% {
+    transform: translateX(-120%);
+  }
+
+  80%,
+  100% {
+    transform: translateX(140%);
+  }
+}
